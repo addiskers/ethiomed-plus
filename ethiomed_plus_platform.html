@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EthioMed+ | National Generic Medicine Access Platform</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --teal:#1A7A6E;--teal-light:#26A99A;--teal-dark:#0f5048;
+  --navy:#0D3B6E;--navy-light:#1558a8;
+  --gold:#C9952A;--gold-light:#f0c040;
+  --red:#c0392b;--green:#1d7a3a;--orange:#e67e22;
+  --bg:#f0f4f8;--card:#fff;--border:#dde4ed;
+  --text:#1a2332;--muted:#6b7c93;
+  --bid-green:#0f9d58;--bid-amber:#f4b400;--bid-red:#db4437;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,var(--navy) 0%,var(--teal-dark) 100%);color:#fff;display:flex;align-items:center;padding:0 20px;height:52px;flex-shrink:0;gap:20px;z-index:1000;}
+.topbar .logo{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.topbar .logo span{color:var(--gold-light);}
+.topbar .subtitle{font-size:11px;color:rgba(255,255,255,0.65);margin-top:1px;}
+.topbar .logo-block{display:flex;flex-direction:column;}
+.live-badge{background:var(--bid-green);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;animation:pulse 2s infinite;letter-spacing:0.5px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.topbar-nav{display:flex;gap:2px;margin-left:auto;}
+.nav-btn{background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s;white-space:nowrap;}
+.nav-btn:hover,.nav-btn.active{background:rgba(255,255,255,0.22);color:#fff;}
+.nav-btn.active{border-bottom:2px solid var(--gold-light);}
+.topbar-stats{display:flex;gap:16px;margin-left:10px;padding-left:16px;border-left:1px solid rgba(255,255,255,0.2);}
+.ts{display:flex;flex-direction:column;align-items:flex-end;}
+.ts-val{font-size:14px;font-weight:700;color:var(--gold-light);}
+.ts-lbl{font-size:9px;color:rgba(255,255,255,0.55);text-transform:uppercase;}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:220px;background:var(--navy);color:#fff;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-section{padding:10px 12px 4px;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.4);letter-spacing:1px;margin-top:6px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.75);transition:all 0.15s;border-left:3px solid transparent;}
+.sidebar-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
+.sidebar-item.active{background:rgba(26,122,110,0.3);color:#fff;border-left-color:var(--teal-light);}
+.sidebar-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-item .badge{margin-left:auto;background:var(--bid-red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;}
+.sidebar-item .badge.green{background:var(--bid-green);}
+.sidebar-item .badge.gold{background:var(--gold);}
+
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.view{display:none;flex:1;overflow:hidden;}
+.view.active{display:flex;flex-direction:column;}
+
+/* CARDS & PANELS */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.panel-header{padding:10px 14px;background:linear-gradient(90deg,var(--teal) 0%,var(--teal-dark) 100%);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.panel-header .ph-sub{margin-left:auto;font-size:10px;font-weight:400;opacity:0.8;}
+.panel-body{padding:14px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:12px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
+.kpi-val{font-size:22px;font-weight:800;color:var(--teal);}
+.kpi-val.gold{color:var(--gold);}
+.kpi-val.navy{color:var(--navy);}
+.kpi-val.green{color:var(--green);}
+.kpi-val.red{color:var(--red);}
+.kpi-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.kpi-delta{font-size:10px;font-weight:600;margin-top:3px;}
+.kpi-delta.up{color:var(--green);}
+.kpi-delta.down{color:var(--red);}
+
+/* TABS */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);background:#fff;padding:0 14px;gap:2px;flex-shrink:0;}
+.tab{padding:8px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;white-space:nowrap;}
+.tab:hover{color:var(--teal);}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse;font-size:11px;}
+.data-table th{background:var(--navy);color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+.data-table td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.data-table tr:hover td{background:#f8fafc;}
+.data-table tr:nth-child(even) td{background:#f5f8fb;}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;}
+.tag.green{background:#e6f4ea;color:#1d7a3a;}
+.tag.amber{background:#fff3cd;color:#856404;}
+.tag.red{background:#fde8e8;color:#c0392b;}
+.tag.blue{background:#e8f0fe;color:#1558a8;}
+.tag.teal{background:#e8f5f3;color:#1A7A6E;}
+
+/* SCROLLABLE CONTENT */
+.scroll{overflow-y:auto;flex:1;}
+
+/* ═══════════════ BIDDING ROOM ═══════════════ */
+.bid-room{display:grid;grid-template-columns:1fr 380px;gap:0;height:100%;overflow:hidden;}
+.bid-left{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);}
+.bid-right{display:flex;flex-direction:column;overflow:hidden;background:#fafbfc;}
+
+.tender-card{border:1px solid var(--border);border-radius:8px;margin:10px;overflow:hidden;background:#fff;transition:box-shadow 0.2s;}
+.tender-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.1);}
+.tender-card.active-live{border-color:var(--teal);box-shadow:0 0 0 2px rgba(26,122,110,0.15);}
+.tc-header{padding:8px 12px;display:flex;align-items:center;gap:8px;background:#f5f8fc;}
+.tc-id{font-size:10px;font-weight:700;color:var(--muted);font-family:monospace;}
+.tc-name{font-size:12px;font-weight:700;color:var(--text);}
+.tc-region{font-size:10px;color:var(--muted);}
+.tc-body{padding:8px 12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+.tc-field{display:flex;flex-direction:column;}
+.tc-field label{font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.tc-field span{font-size:12px;font-weight:700;color:var(--text);}
+.tc-footer{padding:6px 12px;background:#f0f4f8;display:flex;align-items:center;gap:8px;}
+.countdown{font-size:11px;font-weight:700;color:var(--bid-red);font-family:monospace;}
+.bid-progress{flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;}
+.bid-progress-bar{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light));transition:width 1s linear;}
+.bid-btn{background:var(--teal);color:#fff;border:none;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.bid-btn:hover{background:var(--teal-dark);}
+.bid-btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal);}
+
+.live-bids-panel{display:flex;flex-direction:column;overflow:hidden;height:100%;}
+.bid-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;animation:slidein 0.3s ease;}
+@keyframes slidein{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+.bid-rank{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.bid-rank.r1{background:var(--gold);color:#fff;}
+.bid-rank.r2{background:#adb5bd;color:#fff;}
+.bid-rank.r3{background:#cd7f32;color:#fff;}
+.bid-rank.rn{background:var(--border);color:var(--muted);}
+.bid-supplier{flex:1;}
+.bid-supplier-name{font-weight:700;color:var(--text);}
+.bid-supplier-sub{font-size:10px;color:var(--muted);}
+.bid-price{font-size:14px;font-weight:800;color:var(--teal);}
+.bid-saving{font-size:10px;color:var(--green);font-weight:700;}
+.bid-lead{font-size:10px;color:var(--muted);}
+
+/* ═══════════════ MAP VIEW ═══════════════ */
+.map-layout{display:grid;grid-template-columns:1fr 320px;height:100%;overflow:hidden;}
+#ethiopia-map{height:100%;min-height:400px;}
+.map-sidebar{display:flex;flex-direction:column;overflow-y:auto;border-left:1px solid var(--border);background:#fff;}
+
+/* ═══════════════ CITIZEN ═══════════════ */
+.citizen-layout{display:grid;grid-template-columns:280px 1fr 280px;height:100%;overflow:hidden;gap:0;}
+.citizen-sidebar{background:linear-gradient(180deg,var(--navy) 0%,var(--teal-dark) 100%);color:#fff;display:flex;flex-direction:column;overflow-y:auto;}
+.citizen-main{overflow-y:auto;padding:14px;background:var(--bg);}
+.citizen-right{border-left:1px solid var(--border);overflow-y:auto;background:#fff;}
+.id-card{margin:14px;border-radius:12px;background:linear-gradient(135deg,var(--teal-dark),var(--navy));padding:16px;color:#fff;}
+.id-card .name{font-size:16px;font-weight:800;}
+.id-card .id{font-size:10px;font-family:monospace;opacity:0.75;margin-top:3px;}
+.health-score{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 14px;background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;}
+.hs-ring{width:60px;height:60px;border-radius:50%;background:conic-gradient(var(--teal-light) 0% 72%,rgba(255,255,255,0.15) 72%);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;}
+.hs-info{flex:1;}
+.hs-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);}
+.hs-desc{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px;}
+
+/* ═══════════════ GOVERNMENT ═══════════════ */
+.gov-layout{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+/* ═══════════════ REVENUE INTELLIGENCE ═══════════════ */
+.rev-layout{display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%;overflow:hidden;}
+.rev-left{overflow-y:auto;border-right:1px solid var(--border);}
+.rev-right{overflow-y:auto;}
+
+/* PROGRESS BARS */
+.pbar-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:11px;}
+.pbar-label{width:140px;flex-shrink:0;color:var(--text);}
+.pbar-track{flex:1;height:8px;background:#e8eef5;border-radius:4px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:4px;transition:width 0.8s;}
+.pbar-val{width:50px;text-align:right;font-weight:700;color:var(--navy);font-size:11px;}
+
+/* STATUS INDICATORS */
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.status-dot.green{background:var(--bid-green);}
+.status-dot.amber{background:var(--bid-amber);}
+.status-dot.red{background:var(--bid-red);}
+
+/* ORDER QUEUE */
+.order-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);font-size:11px;}
+.order-id{font-family:monospace;font-size:10px;color:var(--muted);}
+
+/* MEDICINE CARD */
+.med-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:6px 0;background:#fff;display:flex;align-items:center;gap:10px;}
+.med-icon{width:36px;height:36px;border-radius:8px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.med-info{flex:1;}
+.med-name{font-size:12px;font-weight:700;color:var(--text);}
+.med-sub{font-size:10px;color:var(--muted);}
+.med-price-block{text-align:right;}
+.med-price{font-size:14px;font-weight:800;color:var(--teal);}
+.med-orig{font-size:10px;color:var(--muted);text-decoration:line-through;}
+.med-save{font-size:10px;color:var(--green);font-weight:700;}
+
+/* CHART CONTAINERS */
+.chart-box{position:relative;height:180px;}
+.chart-box-sm{position:relative;height:140px;}
+
+.section-title{font-size:12px;font-weight:700;color:var(--navy);padding:10px 14px 4px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+
+/* NOTIFICATION STRIP */
+.notif-strip{background:linear-gradient(90deg,var(--teal) 0%,var(--teal-light) 100%);color:#fff;font-size:11px;padding:4px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.notif-strip span{opacity:0.85;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:3px;}
+
+/* UTILITY */
+.flex{display:flex;}
+.flex-col{display:flex;flex-direction:column;}
+.gap8{gap:8px;}
+.gap12{gap:12px;}
+.p12{padding:12px;}
+.p14{padding:14px;}
+.mt8{margin-top:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.bold{font-weight:700;}
+.small{font-size:10px;}
+.muted{color:var(--muted);}
+.teal{color:var(--teal);}
+.navy{color:var(--navy);}
+.gold{color:var(--gold);}
+.green{color:var(--green);}
+.red{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo-block">
+    <div class="logo">Ethio<span>Med+</span></div>
+    <div class="subtitle">National Generic Medicine Access Platform</div>
+  </div>
+  <div class="live-badge">● LIVE</div>
+  <div class="topbar-nav">
+    <button class="nav-btn active" onclick="showView('bidding')">⚡ Procurement Hub</button>
+    <button class="nav-btn" onclick="showView('national')">🗺 National Map</button>
+    <button class="nav-btn" onclick="showView('citizen')">👤 Citizen Portal</button>
+    <button class="nav-btn" onclick="showView('operations')">🚚 Operations</button>
+    <button class="nav-btn" onclick="showView('government')">🏛 MOH Dashboard</button>
+    <button class="nav-btn" onclick="showView('revenue')">💰 Revenue Intel</button>
+  </div>
+  <div class="topbar-stats">
+    <div class="ts"><span class="ts-val" id="ts-tenders">24</span><span class="ts-lbl">Live Tenders</span></div>
+    <div class="ts"><span class="ts-val" id="ts-bids">142</span><span class="ts-lbl">Bids Today</span></div>
+    <div class="ts"><span class="ts-val" id="ts-saving">61%</span><span class="ts-lbl">Avg Saving</span></div>
+    <div class="ts"><span class="ts-val" id="ts-time">--:--:--</span><span class="ts-lbl">Ethiopia Time</span></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION STRIP -->
+<div class="notif-strip" id="notif-strip">
+  <span>🔔</span>
+  <span id="notif-msg">AMHARA-ZONE4-TDR-2847: Artemether+Lumefantrine (10,000 units) — Bid closes in 04:32:18 | OROMIA-JIMMA-TDR-2848: Oxytocin 10IU (3,500 units) — AWARDED to HEWA Sky at ETB 3.80/unit (saving 83%)</span>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">Procurement</div>
+  <div class="sidebar-item active" onclick="showView('bidding');setSidebar(this)"><span class="icon">⚡</span> Live Bidding Room <span class="badge">24</span></div>
+  <div class="sidebar-item" onclick="showView('bidding');setSidebar(this)"><span class="icon">📋</span> Tender History</div>
+  <div class="sidebar-item" onclick="showView('bidding');setSidebar(this)"><span class="icon">🏭</span> Supplier Registry <span class="badge green">18</span></div>
+  <div class="sidebar-section">National Health</div>
+  <div class="sidebar-item" onclick="showView('national');setSidebar(this)"><span class="icon">🗺</span> National Coverage</div>
+  <div class="sidebar-item" onclick="showView('national');setSidebar(this)"><span class="icon">🏥</span> Kiosk Network <span class="badge green">487</span></div>
+  <div class="sidebar-item" onclick="showView('operations');setSidebar(this)"><span class="icon">📦</span> Inventory Status</div>
+  <div class="sidebar-section">Citizens</div>
+  <div class="sidebar-item" onclick="showView('citizen');setSidebar(this)"><span class="icon">👤</span> Citizen Portal</div>
+  <div class="sidebar-item" onclick="showView('citizen');setSidebar(this)"><span class="icon">💊</span> Prescriptions <span class="badge">7</span></div>
+  <div class="sidebar-item" onclick="showView('citizen');setSidebar(this)"><span class="icon">🏥</span> CBHI Claims</div>
+  <div class="sidebar-section">Government</div>
+  <div class="sidebar-item" onclick="showView('government');setSidebar(this)"><span class="icon">🏛</span> MOH Dashboard</div>
+  <div class="sidebar-item" onclick="showView('government');setSidebar(this)"><span class="icon">🦠</span> Disease Surveillance</div>
+  <div class="sidebar-item" onclick="showView('government');setSidebar(this)"><span class="icon">🚨</span> Pandemic Alerts <span class="badge gold">2</span></div>
+  <div class="sidebar-section">Business</div>
+  <div class="sidebar-item" onclick="showView('revenue');setSidebar(this)"><span class="icon">💰</span> Revenue Intel</div>
+  <div class="sidebar-item" onclick="showView('revenue');setSidebar(this)"><span class="icon">✈</span> India Pipeline</div>
+  <div class="sidebar-item" onclick="showView('revenue');setSidebar(this)"><span class="icon">📈</span> Partner Analytics</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ═══════════════ VIEW: BIDDING ROOM ═══════════════ -->
+<div class="view active" id="view-bidding">
+  <div class="bid-room">
+    <div class="bid-left">
+      <div class="tab-bar" id="bid-tabbar">
+        <div class="tab active" onclick="setBidTab('live',this)">⚡ LIVE TENDERS (24)</div>
+        <div class="tab" onclick="setBidTab('pending',this)">⏳ Pending Award (8)</div>
+        <div class="tab" onclick="setBidTab('awarded',this)">✅ Awarded Today (31)</div>
+        <div class="tab" onclick="setBidTab('analytics',this)">📊 Bid Analytics</div>
+      </div>
+      <div class="scroll" id="bid-content">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+    <div class="bid-right">
+      <div class="panel-header">🏆 Live Bids — TDR-2847 <span class="ph-sub" id="bid-panel-title">Artemether+Lumefantrine 20/120mg</span></div>
+      <div style="padding:10px;border-bottom:1px solid var(--border);background:#fffef8;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">TENDER CLOSES IN</div>
+        <div style="font-size:28px;font-weight:800;color:var(--bid-red);font-family:monospace;" id="big-countdown">04:32:11</div>
+        <div class="bid-progress" style="height:8px;margin-top:6px;"><div class="bid-progress-bar" id="main-progress" style="width:62%"></div></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <div><div style="font-size:10px;color:var(--muted)">Region</div><div style="font-size:12px;font-weight:700">Amhara — Zone 4</div></div>
+          <div><div style="font-size:10px;color:var(--muted)">Qty</div><div style="font-size:12px;font-weight:700">10,000 units</div></div>
+          <div><div style="font-size:10px;color:var(--muted)">Floor Price</div><div style="font-size:12px;font-weight:700">ETB 22.00</div></div>
+        </div>
+      </div>
+      <div class="section-title">COMPETING BIDS (5 suppliers)</div>
+      <div class="scroll" id="live-bids-list"><!-- JS renders --></div>
+      <div style="padding:10px;border-top:1px solid var(--border);background:#f0f4f8;">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;">Quality Assurance Gate</div>
+        <div style="font-size:10px;color:var(--muted);">All bids verified for: EFDA registration ✓ | WHO-GMP certificate ✓ | Min shelf life 18mo ✓ | Cold-chain capability ✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VIEW: NATIONAL MAP ═══════════════ -->
+<div class="view" id="view-national">
+  <div class="map-layout">
+    <div id="ethiopia-map"></div>
+    <div class="map-sidebar">
+      <div class="panel-header">📊 Region Overview</div>
+      <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
+        <select id="map-metric" onchange="updateMapMetric()" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;flex:1;">
+          <option value="kiosks">Kiosk Coverage</option>
+          <option value="price_reduction">Avg Price Reduction</option>
+          <option value="citizens">Citizens Enrolled</option>
+          <option value="jobs">Jobs Created</option>
+          <option value="tenders">Active Tenders</option>
+        </select>
+      </div>
+      <div class="scroll" id="region-list"><!-- JS --></div>
+      <div style="padding:10px;border-top:1px solid var(--border);">
+        <div class="section-title" style="padding:0 0 6px;border:none;">NATIONAL KPIs</div>
+        <div class="grid2" style="gap:6px;">
+          <div class="kpi" style="padding:8px;"><div class="kpi-val" style="font-size:18px;">487</div><div class="kpi-lbl">Kiosks Active</div></div>
+          <div class="kpi" style="padding:8px;"><div class="kpi-val gold" style="font-size:18px;">61%</div><div class="kpi-lbl">Avg Saving</div></div>
+          <div class="kpi" style="padding:8px;"><div class="kpi-val navy" style="font-size:18px;">2.1M</div><div class="kpi-lbl">Citizens Enrolled</div></div>
+          <div class="kpi" style="padding:8px;"><div class="kpi-val green" style="font-size:18px;">4,800</div><div class="kpi-lbl">Jobs Created</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VIEW: CITIZEN PORTAL ═══════════════ -->
+<div class="view" id="view-citizen">
+  <div class="citizen-layout">
+    <!-- LEFT: ID Card -->
+    <div class="citizen-sidebar">
+      <div class="id-card">
+        <div style="font-size:10px;opacity:0.6;margin-bottom:6px;">ETHIOMED+ CITIZEN HEALTH CARD</div>
+        <div class="name">Fatuma Hassen Gemechu</div>
+        <div class="id">ID: ETH-ORM-ORO-2024-08847</div>
+        <div style="display:flex;gap:8px;margin-top:8px;font-size:10px;flex-wrap:wrap;">
+          <div style="background:rgba(255,255,255,0.15);padding:3px 8px;border-radius:8px;">NIN: ETH-00281773</div>
+          <div style="background:rgba(255,255,255,0.15);padding:3px 8px;border-radius:8px;">SkyPath: SP-4421</div>
+          <div style="background:rgba(255,255,255,0.15);padding:3px 8px;border-radius:8px;">CBHI: Active</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;background:rgba(255,255,255,0.1);padding:6px 8px;border-radius:6px;">
+          🤰 Pregnant — 24 weeks | High-risk ANC<br>
+          📍 Jimma Zone, Oromia
+        </div>
+      </div>
+      <div class="health-score">
+        <div class="hs-ring">72</div>
+        <div class="hs-info">
+          <div class="hs-title">Health Score</div>
+          <div class="hs-desc">+4 pts since last visit</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">Next check: 3 days</div>
+        </div>
+      </div>
+      <div class="sidebar-section" style="color:rgba(255,255,255,0.4);">Insurance & Benefits</div>
+      <div style="margin:0 10px 8px;background:rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-size:11px;color:rgba(255,255,255,0.8);">
+        <div style="font-weight:700;color:#fff;margin-bottom:4px;">CBHI Coverage</div>
+        <div>Monthly premium: ETB 30</div>
+        <div>Medicine subsidy: <span style="color:var(--gold-light);font-weight:700;">65% covered</span></div>
+        <div>Annual cap: ETB 12,000</div>
+        <div style="margin-top:4px;font-size:10px;color:rgba(255,255,255,0.5);">Used this year: ETB 2,840 / 12,000</div>
+        <div style="height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin-top:4px;"><div style="height:100%;width:24%;background:var(--teal-light);border-radius:2px;"></div></div>
+      </div>
+      <div class="sidebar-section" style="color:rgba(255,255,255,0.4);">Recent Activity</div>
+      <div style="padding:8px 12px;font-size:10px;color:rgba(255,255,255,0.6);">
+        <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.08);">💊 Ferrous Sulfate delivered — 2 days ago</div>
+        <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.08);">🔬 SkyPath diagnosis — 5 days ago</div>
+        <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.08);">✅ CBHI claim approved — 1 week ago</div>
+        <div style="padding:5px 0;">📋 ANC-4 prescription issued — 1 week ago</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Main -->
+    <div class="citizen-main">
+      <div class="tab-bar" id="citizen-tabbar">
+        <div class="tab active" onclick="setCitizenTab('prescriptions',this)">💊 Prescriptions</div>
+        <div class="tab" onclick="setCitizenTab('order',this)">🛒 Order Medicines</div>
+        <div class="tab" onclick="setCitizenTab('diagnostics',this)">🔬 Diagnostics</div>
+        <div class="tab" onclick="setCitizenTab('history',this)">📋 Health History</div>
+        <div class="tab" onclick="setCitizenTab('whatsapp',this)">💬 AlwaysOn AI</div>
+      </div>
+      <div id="citizen-tab-content" style="padding:14px;">
+        <!-- JS renders -->
+      </div>
+    </div>
+
+    <!-- RIGHT: Nearby Kiosk + Order Tracking -->
+    <div class="citizen-right">
+      <div class="section-title">📍 Nearest Kiosk</div>
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);">Jimma Town Kiosk #ORO-047</div>
+        <div style="font-size:11px;color:var(--muted);">0.8 km away | Open 7am–9pm</div>
+        <div style="margin-top:6px;display:flex;gap:6px;">
+          <span class="tag green">800 items stocked</span>
+          <span class="tag teal">CMD available</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;">
+          <div style="color:var(--muted);">Operator: <strong>Dawit Bekele</strong></div>
+          <div style="color:var(--muted);">CMD: <strong>Mohammed Seid (🏍 on duty)</strong></div>
+        </div>
+      </div>
+      <div class="section-title">📦 Active Orders</div>
+      <div style="padding:10px 12px;">
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+          <div style="padding:8px 10px;background:var(--teal);color:#fff;font-size:11px;font-weight:700;">ORD-2024-08847-015</div>
+          <div style="padding:8px 10px;font-size:11px;">
+            <div>Folic Acid 5mg × 90 tabs</div>
+            <div>Ferrous Sulfate × 60 tabs</div>
+            <div style="margin-top:6px;display:flex;justify-content:space-between;">
+              <span class="tag green">In Transit 🏍</span>
+              <span style="font-weight:700;color:var(--teal);">ETB 31.50</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;">Est delivery: Today 2–5pm | CBHI covers 65%</div>
+            <div style="font-size:10px;color:var(--green);font-weight:700;">You pay: ETB 11.03 (saved ETB 118)</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-title">💬 AlwaysOn AI Alert</div>
+      <div style="padding:10px 12px;background:#f0faf7;border-left:3px solid var(--teal);margin:8px 12px;border-radius:0 6px 6px 0;font-size:11px;">
+        <div style="font-weight:700;color:var(--teal);margin-bottom:4px;">Iron supplement reminder</div>
+        <div style="color:var(--text);">Fatuma, your iron levels from last SkyPath test were 9.2 g/dL. Please take Ferrous Sulfate daily with your morning meal. Your next refill is auto-scheduled in 28 days.</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">In Afaan Oromoo | Arabic | Amharic available</div>
+      </div>
+      <div class="section-title">📊 Savings Summary</div>
+      <div style="padding:10px 12px;">
+        <div style="font-size:28px;font-weight:800;color:var(--teal);">ETB 2,840</div>
+        <div style="font-size:11px;color:var(--muted);">Saved vs private pharmacy (this year)</div>
+        <div style="margin-top:8px;">
+          <div class="pbar-row"><span class="pbar-label">Maternal medicines</span><div class="pbar-track"><div class="pbar-fill" style="width:78%;background:var(--teal)"></div></div><span class="pbar-val">ETB 1,840</span></div>
+          <div class="pbar-row"><span class="pbar-label">Anaemia treatment</span><div class="pbar-track"><div class="pbar-fill" style="width:45%;background:var(--gold)"></div></div><span class="pbar-val">ETB 620</span></div>
+          <div class="pbar-row"><span class="pbar-label">Other essentials</span><div class="pbar-track"><div class="pbar-fill" style="width:28%;background:var(--navy)"></div></div><span class="pbar-val">ETB 380</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VIEW: OPERATIONS ═══════════════ -->
+<div class="view" id="view-operations">
+  <div class="tab-bar" id="ops-tabbar">
+    <div class="tab active" onclick="setOpsTab('dispatch',this)">🚚 CMD Dispatch</div>
+    <div class="tab" onclick="setOpsTab('inventory',this)">📦 Inventory</div>
+    <div class="tab" onclick="setOpsTab('kiosks',this)">🏥 Kiosk Network</div>
+    <div class="tab" onclick="setOpsTab('alerts',this)">🚨 Alerts (3)</div>
+  </div>
+  <div class="scroll" style="flex:1;">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val">487</div><div class="kpi-lbl">Active Kiosks</div><div class="kpi-delta up">↑ 12 this week</div></div>
+      <div class="kpi"><div class="kpi-val gold">1,461</div><div class="kpi-lbl">CMDs on Route</div><div class="kpi-delta up">↑ 94% deployment</div></div>
+      <div class="kpi"><div class="kpi-val navy">4,820</div><div class="kpi-lbl">Orders Today</div><div class="kpi-delta up">↑ 18% vs yesterday</div></div>
+      <div class="kpi"><div class="kpi-val green">98.2%</div><div class="kpi-lbl">Delivery Success</div><div class="kpi-delta up">+0.3% this month</div></div>
+      <div class="kpi"><div class="kpi-val">3.2h</div><div class="kpi-lbl">Avg Delivery Time</div><div class="kpi-delta down">↓ vs 4.8h last month</div></div>
+      <div class="kpi"><div class="kpi-val red">14</div><div class="kpi-lbl">Stock-out Alerts</div><div class="kpi-delta">Across 9 kiosks</div></div>
+    </div>
+    <div style="padding:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="panel">
+          <div class="panel-header">📦 Critical Stock Alerts</div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table">
+              <tr><th>Medicine</th><th>Region</th><th>Stock</th><th>Status</th></tr>
+              <tr><td>Artemether+Lumefantrine</td><td>Tigray-Zone2</td><td>48 units</td><td><span class="tag red">Critical</span></td></tr>
+              <tr><td>Oxytocin 10IU</td><td>SNNPR-Wolyta</td><td>120 units</td><td><span class="tag amber">Low</span></td></tr>
+              <tr><td>ORS Sachets</td><td>Afar-Zone1</td><td>220 units</td><td><span class="tag amber">Low</span></td></tr>
+              <tr><td>Ferrous Sulfate</td><td>Somali-Jijiga</td><td>890 units</td><td><span class="tag green">OK</span></td></tr>
+              <tr><td>Metformin 500mg</td><td>Amhara-Bahir Dar</td><td>340 units</td><td><span class="tag amber">Low</span></td></tr>
+              <tr><td>ARV (TDF/3TC/DTG)</td><td>Addis Ababa</td><td>2,100 units</td><td><span class="tag green">OK</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">🏍 CMD Performance — Top Zones</div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table">
+              <tr><th>Zone</th><th>CMDs</th><th>Orders/Day</th><th>Earnings (ETB)</th></tr>
+              <tr><td>Jimma (Oromia)</td><td>48</td><td>285</td><td>8,900/mo avg</td></tr>
+              <tr><td>Bahir Dar (Amhara)</td><td>42</td><td>248</td><td>8,200/mo avg</td></tr>
+              <tr><td>Hawassa (Sidama)</td><td>35</td><td>196</td><td>7,800/mo avg</td></tr>
+              <tr><td>Dire Dawa</td><td>28</td><td>182</td><td>9,400/mo avg</td></tr>
+              <tr><td>Adama (Oromia)</td><td>38</td><td>175</td><td>8,100/mo avg</td></tr>
+              <tr><td>Mekelle (Tigray)</td><td>22</td><td>98</td><td>6,200/mo avg</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="panel mt8">
+        <div class="panel-header">📊 Daily Order Volume by Region</div>
+        <div class="panel-body"><div class="chart-box"><canvas id="ops-chart"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VIEW: GOVERNMENT ═══════════════ -->
+<div class="view" id="view-government">
+  <div class="tab-bar" id="gov-tabbar">
+    <div class="tab active" onclick="setGovTab('national',this)">🇪🇹 National KPIs</div>
+    <div class="tab" onclick="setGovTab('supply',this)">⛓ Supply Chain</div>
+    <div class="tab" onclick="setGovTab('disease',this)">🦠 Disease Surveillance</div>
+    <div class="tab" onclick="setGovTab('maternal',this)">👩‍⚕️ Maternal & Child</div>
+    <div class="tab" onclick="setGovTab('pandemic',this)">🚨 Pandemic Prep</div>
+    <div class="tab" onclick="setGovTab('jobs',this)">👷 Youth Employment</div>
+    <div class="tab" onclick="setGovTab('india',this)">✈ India Pipeline</div>
+  </div>
+  <div class="scroll" style="flex:1;" id="gov-content">
+    <!-- JS renders -->
+  </div>
+</div>
+
+<!-- ═══════════════ VIEW: REVENUE INTELLIGENCE ═══════════════ -->
+<div class="view" id="view-revenue">
+  <div class="rev-layout">
+    <div class="rev-left">
+      <div class="panel-header">💰 Consortium Revenue Dashboard — EthioMed+ Private Partners</div>
+      <div style="padding:10px;background:#fffef8;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);">
+        Live financial intelligence for: HEWA Sky Quest Global · SkyQuest Technology · Orbit Health (eHealth IT Services PLC) · ABH Partners PLC
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val gold">USD 1.24M</div><div class="kpi-lbl">Total Revenue YTD</div><div class="kpi-delta up">↑ 48% vs plan</div></div>
+        <div class="kpi"><div class="kpi-val">USD 4.8M</div><div class="kpi-lbl">Year 1 Projection</div><div class="kpi-delta up">On track</div></div>
+        <div class="kpi"><div class="kpi-val navy">USD 38M</div><div class="kpi-lbl">Year 3 Target</div><div class="kpi-delta">Full national</div></div>
+        <div class="kpi"><div class="kpi-val green">USD 120M</div><div class="kpi-lbl">Year 5 Target</div><div class="kpi-delta">East Africa scale</div></div>
+      </div>
+      <div style="padding:14px;">
+        <div class="panel">
+          <div class="panel-header">📊 Revenue by Stream (YTD)</div>
+          <div class="panel-body"><div class="chart-box"><canvas id="rev-stream-chart"></canvas></div></div>
+        </div>
+        <div class="panel mt8">
+          <div class="panel-header">📈 Monthly Revenue Trend</div>
+          <div class="panel-body"><div class="chart-box"><canvas id="rev-trend-chart"></canvas></div></div>
+        </div>
+        <div class="panel mt8">
+          <div class="panel-header">🏭 Partner Revenue Share</div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table">
+              <tr><th>Partner</th><th>Revenue Stream</th><th>YTD (USD)</th><th>Margin %</th><th>Trend</th></tr>
+              <tr><td><strong>HEWA Sky Quest Global</strong></td><td>Medicine supply margin + export fees</td><td style="color:var(--teal);font-weight:700;">$618,000</td><td>18–22%</td><td class="green">↑ 52%</td></tr>
+              <tr><td><strong>SkyQuest Technology</strong></td><td>Platform licence + SkyPath diagnostics + GeoHealth AI</td><td style="color:var(--teal);font-weight:700;">$285,000</td><td>65–72%</td><td class="green">↑ 44%</td></tr>
+              <tr><td><strong>Orbit Health</strong></td><td>Platform hosting + CBHI integration + MEL services</td><td style="color:var(--teal);font-weight:700;">$198,000</td><td>42–55%</td><td class="green">↑ 38%</td></tr>
+              <tr><td><strong>ABH Partners PLC</strong></td><td>Kiosk franchise fees + CMD network management</td><td style="color:var(--teal);font-weight:700;">$141,000</td><td>28–35%</td><td class="green">↑ 61%</td></tr>
+              <tr style="background:#e8f5f3;"><td><strong>TOTAL CONSORTIUM</strong></td><td>All streams combined</td><td style="color:var(--teal);font-weight:800;font-size:13px;">$1,242,000</td><td>31% blended</td><td class="green bold">↑ 48%</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rev-right">
+      <div class="panel-header">✈ HEWA Sky — India→Ethiopia Pipeline</div>
+      <div style="padding:12px;border-bottom:1px solid var(--border);">
+        <div class="kpi-grid" style="padding:0;gap:8px;margin-bottom:10px;">
+          <div class="kpi" style="padding:8px;"><div class="kpi-val" style="font-size:16px;">USD 2.1M</div><div class="kpi-lbl">Import Value YTD</div></div>
+          <div class="kpi" style="padding:8px;"><div class="kpi-val gold" style="font-size:16px;">USD 8M</div><div class="kpi-lbl">Year 1 Target</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;">Active Indian Supplier Relationships</div>
+        <table class="data-table" style="font-size:10px;">
+          <tr><th>Manufacturer</th><th>State</th><th>Medicines</th><th>Monthly Value</th></tr>
+          <tr><td>Cipla Ltd</td><td>Maharashtra</td><td>ARVs, Respiratory</td><td>USD 85,000</td></tr>
+          <tr><td>Sun Pharma</td><td>Gujarat</td><td>Cardio, Diabetes</td><td>USD 72,000</td></tr>
+          <tr><td>Aurobindo Pharma</td><td>Telangana</td><td>Antibiotics, Anti-infective</td><td>USD 68,000</td></tr>
+          <tr><td>Lupin Ltd</td><td>Maharashtra</td><td>TB, Maternal</td><td>USD 54,000</td></tr>
+          <tr><td>Intas Pharma</td><td>Gujarat</td><td>Oncology, Hormones</td><td>USD 41,000</td></tr>
+          <tr><td>MSN Laboratories</td><td>Telangana</td><td>Malaria (ACTs)</td><td>USD 38,000</td></tr>
+        </table>
+      </div>
+      <div style="padding:12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;">Shipment Pipeline</div>
+        <table class="data-table" style="font-size:10px;">
+          <tr><th>Shipment ID</th><th>Contents</th><th>Value</th><th>Status</th></tr>
+          <tr><td>HEWA-2026-0041</td><td>ACTs 50K units + ORS 200K</td><td>USD 38,500</td><td><span class="tag blue">In Transit</span></td></tr>
+          <tr><td>HEWA-2026-0040</td><td>ARV combo 5K monthly packs</td><td>USD 142,000</td><td><span class="tag blue">In Transit</span></td></tr>
+          <tr><td>HEWA-2026-0039</td><td>Maternal kit (1,000 facilities)</td><td>USD 28,000</td><td><span class="tag green">Delivered — Addis</span></td></tr>
+          <tr><td>HEWA-2026-0038</td><td>Antibiotics bulk (100K units)</td><td>USD 22,400</td><td><span class="tag green">Distributed</span></td></tr>
+          <tr><td>HEWA-2026-0042</td><td>Diabetes + CVD combo</td><td>USD 61,000</td><td><span class="tag amber">Customs EFDA</span></td></tr>
+        </table>
+      </div>
+      <div style="padding:12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;">Continuous Revenue Model — Why This Never Stops</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.6;">
+          <div style="margin-bottom:6px;padding:6px 10px;background:#e8f5f3;border-left:3px solid var(--teal);border-radius:0 6px 6px 0;">
+            <strong>HEWA Sky Quest Global:</strong> Every medicine dispensed at any EthioMed+ kiosk generates supply revenue. As kiosk count grows 10× over 5 years, revenue grows automatically. EFDA-cleared status means competitors cannot easily replicate the pipeline.
+          </div>
+          <div style="margin-bottom:6px;padding:6px 10px;background:#e8eef7;border-left:3px solid var(--navy);border-radius:0 6px 6px 0;">
+            <strong>SkyQuest Technology:</strong> Annual platform licence from MOH (SaaS model). Every SkyPath diagnostic drives a medicine order. GeoHealth AI data is licensed to development partners, WHO, and research institutions. Training LMS subscriptions from 5,000+ kiosk operators.
+          </div>
+          <div style="margin-bottom:6px;padding:6px 10px;background:#fffef0;border-left:3px solid var(--gold);border-radius:0 6px 6px 0;">
+            <strong>Orbit Health:</strong> CBHI integration generates per-claim processing fees at scale. Platform hosting and MEL contracts with MOH, development partners, and regional health bureaus create recurring annual contracts.
+          </div>
+          <div style="padding:6px 10px;background:#eef7f0;border-left:3px solid var(--green);border-radius:0 6px 6px 0;">
+            <strong>ABH Partners:</strong> Franchise enrollment fee per kiosk (ETB 15,000 one-time + ETB 2,000/month management). CMD network generates logistics coordination fees. As the network expands to East Africa, ABH replicates the model in each country.
+          </div>
+        </div>
+      </div>
+      <div style="padding:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;">5-Year Revenue Projections by Partner (USD)</div>
+        <div class="chart-box"><canvas id="rev-5yr-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end content -->
+</div><!-- end main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════════════════════════
+const REGIONS = [
+  {name:'Oromia',lat:7.5,lon:40.0,pop:42000000,kiosks:148,citizens:820000,jobs:1244,price_reduction:62,tenders:8,color:'#1A7A6E'},
+  {name:'Amhara',lat:11.5,lon:38.0,pop:22000000,kiosks:98,citizens:480000,jobs:780,price_reduction:58,tenders:6,color:'#0D3B6E'},
+  {name:'SNNPR',lat:6.5,lon:37.5,pop:23000000,kiosks:72,citizens:310000,jobs:540,price_reduction:55,tenders:4,color:'#26A99A'},
+  {name:'Addis Ababa',lat:9.02,lon:38.74,pop:4000000,kiosks:62,citizens:210000,jobs:380,price_reduction:68,tenders:3,color:'#C9952A'},
+  {name:'Somali',lat:7.0,lon:43.5,pop:7000000,kiosks:28,citizens:98000,jobs:210,price_reduction:51,tenders:1,color:'#c0392b'},
+  {name:'Tigray',lat:14.0,lon:38.5,pop:5700000,kiosks:24,citizens:82000,jobs:180,price_reduction:48,tenders:1,color:'#8e44ad'},
+  {name:'Sidama',lat:6.8,lon:38.4,pop:4000000,kiosks:18,citizens:62000,jobs:144,price_reduction:56,tenders:1,color:'#16a085'},
+  {name:'Afar',lat:12.5,lon:40.5,pop:1800000,kiosks:12,citizens:38000,jobs:96,price_reduction:44,tenders:0,color:'#e67e22'},
+  {name:'Benishangul',lat:10.8,lon:35.6,pop:1100000,kiosks:8,citizens:22000,jobs:64,price_reduction:42,tenders:0,color:'#2980b9'},
+  {name:'Gambella',lat:8.25,lon:34.6,pop:500000,kiosks:4,citizens:9000,jobs:32,price_reduction:38,tenders:0,color:'#27ae60'},
+  {name:'Harari',lat:9.31,lon:42.14,pop:280000,kiosks:5,citizens:12000,jobs:40,price_reduction:65,tenders:0,color:'#f39c12'},
+  {name:'Dire Dawa',lat:9.59,lon:41.87,pop:490000,kiosks:8,citizens:24000,jobs:64,price_reduction:63,tenders:0,color:'#e74c3c'},
+];
+
+const TENDERS = [
+  {id:'AMHARA-TDR-2847',medicine:'Artemether+Lumefantrine 20/120mg',region:'Amhara — North Gondar Zone',qty:10000,unit:'packs',floor:22.00,bids:5,closes:'04:32:11',tier:'Regional',status:'live'},
+  {id:'OROMIA-TDR-2848',medicine:'Oxytocin 10IU injection',region:'Oromia — Jimma Zone',qty:3500,unit:'vials',floor:22.00,bids:4,closes:'02:18:44',tier:'Local',status:'live'},
+  {id:'SNNPR-TDR-2849',medicine:'Ferrous Sulfate 300mg tabs',region:'SNNPR — Wolayta Zone',qty:50000,unit:'tabs',floor:1.20,bids:6,closes:'01:44:22',tier:'Regional',status:'live'},
+  {id:'ADDIS-TDR-2850',medicine:'TDF/3TC/DTG ARV combo (monthly)',region:'Addis Ababa — All zones',qty:800,unit:'packs',floor:280.00,bids:3,closes:'11:20:00',tier:'National',status:'live'},
+  {id:'TIGRAY-TDR-2851',medicine:'Amoxicillin 500mg capsules',region:'Tigray — Central Zone',qty:25000,unit:'caps',floor:9.50,bids:7,closes:'00:58:12',tier:'Local',status:'live'},
+  {id:'SOMALI-TDR-2852',medicine:'ORS 1L sachets',region:'Somali — Jijiga Zone',qty:80000,unit:'sachets',floor:4.50,bids:4,closes:'03:02:55',tier:'Regional',status:'live'},
+  {id:'AFAR-TDR-2853',medicine:'Zinc Sulfate 20mg (paediatric)',region:'Afar — Zone 1',qty:30000,unit:'tabs',floor:1.80,bids:3,closes:'05:40:00',tier:'Local',status:'live'},
+  {id:'BENISH-TDR-2854',medicine:'Cotrimoxazole 480mg tabs',region:'Benishangul-Gumuz',qty:20000,unit:'tabs',floor:2.80,bids:2,closes:'08:15:00',tier:'Local',status:'live'},
+];
+
+const LIVE_BIDS = [
+  {rank:1,supplier:'HEWA Sky Quest Global',sub:'India — WHO-GMP Certified',price:4.82,saving:78,lead:'5 days',score:94,flag:'🇮🇳'},
+  {rank:2,supplier:'Addis Pharma Distributors',sub:'Ethiopia — EFDA Registered',price:5.40,saving:75,lead:'3 days',score:88,flag:'🇪🇹'},
+  {rank:3,supplier:'Macro-Med East Africa',sub:'Kenya — EAC Certified',price:5.85,saving:73,lead:'8 days',score:82,flag:'🇰🇪'},
+  {rank:4,supplier:'Cipla Bangladesh Ltd',sub:'Bangladesh — WHO-GMP',price:6.10,saving:72,lead:'9 days',score:79,flag:'🇧🇩'},
+  {rank:5,supplier:'EPSA (National Reserve)',sub:'Ethiopia — Government',price:6.80,saving:69,lead:'2 days',score:91,flag:'🇪🇹'},
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════════
+let activeView = 'bidding';
+
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = ['bidding','national','citizen','operations','government','revenue'];
+  const idx = map.indexOf(v);
+  if (idx >= 0) btns[idx].classList.add('active');
+  activeView = v;
+  if (v==='national') initMap();
+  if (v==='government') renderGovTab('national');
+  if (v==='revenue') setTimeout(initRevenueCharts, 100);
+  if (v==='operations') setTimeout(initOpsChart, 100);
+  if (v==='citizen') renderCitizenTab('prescriptions');
+}
+
+function setSidebar(el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CLOCK & TICKER
+// ═══════════════════════════════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const eth = new Date(now.toLocaleString('en-US', {timeZone:'Africa/Addis_Ababa'}));
+  document.getElementById('ts-time').textContent =
+    eth.toTimeString().slice(0,8);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Countdown timer
+let countdownSeconds = 4*3600+32*60+11;
+function tickCountdown() {
+  countdownSeconds = Math.max(0, countdownSeconds - 1);
+  const h = Math.floor(countdownSeconds/3600);
+  const m = Math.floor((countdownSeconds%3600)/60);
+  const s = countdownSeconds%60;
+  const str = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const el = document.getElementById('big-countdown');
+  if (el) el.textContent = str;
+  // Also update tender cards
+  document.querySelectorAll('.countdown').forEach(el => {
+    if (el.dataset.idx === '0') el.textContent = str;
+  });
+  const pct = Math.max(0, (countdownSeconds/(6*3600))*100);
+  const pb = document.getElementById('main-progress');
+  if (pb) pb.style.width = pct+'%';
+}
+setInterval(tickCountdown, 1000);
+
+// Live bid counter
+let bidCount = 142;
+setInterval(() => {
+  if (Math.random() < 0.3) {
+    bidCount++;
+    const el = document.getElementById('ts-bids');
+    if (el) el.textContent = bidCount;
+  }
+}, 3000);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  BIDDING ROOM
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderTenders() {
+  const cont = document.getElementById('bid-content');
+  if (!cont) return;
+  cont.innerHTML = TENDERS.map((t,i) => `
+    <div class="tender-card ${i===0?'active-live':''}">
+      <div class="tc-header">
+        <div>
+          <div class="tc-id">${t.id}</div>
+          <div class="tc-name">${t.medicine}</div>
+          <div class="tc-region">📍 ${t.region}</div>
+        </div>
+        <span class="tag ${t.tier==='National'?'red':t.tier==='Regional'?'blue':'teal'}" style="margin-left:auto">${t.tier}</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-field"><label>Quantity</label><span>${t.qty.toLocaleString()} ${t.unit}</span></div>
+        <div class="tc-field"><label>Floor Price</label><span>ETB ${t.floor.toFixed(2)}</span></div>
+        <div class="tc-field"><label>Bids Received</label><span>${t.bids} suppliers</span></div>
+        <div class="tc-field"><label>Tier</label><span>${t.tier}</span></div>
+      </div>
+      <div class="tc-footer">
+        <span style="font-size:10px;color:var(--muted)">Closes in:</span>
+        <span class="countdown" data-idx="${i}">${t.closes}</span>
+        <div class="bid-progress"><div class="bid-progress-bar" style="width:${60+i*5}%"></div></div>
+        <button class="bid-btn ghost" onclick="selectTender(${i})">View Bids</button>
+        ${i===0?`<button class="bid-btn">Submit Bid</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectTender(i) {
+  const t = TENDERS[i];
+  document.getElementById('bid-panel-title').textContent = t.medicine;
+}
+
+function renderLiveBids() {
+  const cont = document.getElementById('live-bids-list');
+  if (!cont) return;
+  const rankClass = ['r1','r2','r3','rn','rn'];
+  cont.innerHTML = LIVE_BIDS.map((b,i) => `
+    <div class="bid-row">
+      <div class="bid-rank ${rankClass[i]}">${b.rank}</div>
+      <div style="font-size:18px">${b.flag}</div>
+      <div class="bid-supplier">
+        <div class="bid-supplier-name">${b.supplier}</div>
+        <div class="bid-supplier-sub">${b.sub} · Score: ${b.score}/100</div>
+      </div>
+      <div>
+        <div class="bid-price">ETB ${b.price.toFixed(2)}</div>
+        <div class="bid-saving">↓ ${b.saving}% saving</div>
+        <div class="bid-lead">🚚 ${b.lead}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Animated new bid
+  setTimeout(() => {
+    const newBid = document.createElement('div');
+    newBid.className = 'bid-row';
+    newBid.innerHTML = `
+      <div class="bid-rank rn">?</div>
+      <div style="font-size:18px">🇮🇳</div>
+      <div class="bid-supplier">
+        <div class="bid-supplier-name" style="color:var(--gold)">⚡ NEW BID INCOMING...</div>
+        <div class="bid-supplier-sub">Strides Pharma · India · WHO-GMP</div>
+      </div>
+      <div><div class="bid-price">Evaluating...</div></div>`;
+    cont.insertBefore(newBid, cont.firstChild);
+    setTimeout(() => {
+      newBid.innerHTML = `
+        <div class="bid-rank rn">2</div>
+        <div style="font-size:18px">🇮🇳</div>
+        <div class="bid-supplier">
+          <div class="bid-supplier-name">Strides Pharma Ltd</div>
+          <div class="bid-supplier-sub">India — WHO-GMP Certified · Score: 91/100</div>
+        </div>
+        <div>
+          <div class="bid-price">ETB 4.65</div>
+          <div class="bid-saving">↓ 79% saving</div>
+          <div class="bid-lead">🚚 6 days</div>
+        </div>`;
+    }, 2500);
+  }, 8000);
+}
+
+function setBidTab(tab, el) {
+  document.querySelectorAll('#bid-tabbar .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  NATIONAL MAP
+// ═══════════════════════════════════════════════════════════════════════════════
+let map = null;
+let markers = [];
+
+function initMap() {
+  if (map) return;
+  map = L.map('ethiopia-map', {zoomControl:true}).setView([9.0, 40.5], 6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:'&copy; OpenStreetMap contributors &copy; CARTO', maxZoom:19
+  }).addTo(map);
+
+  REGIONS.forEach(r => {
+    const size = Math.max(20, Math.min(50, r.kiosks/3));
+    const circle = L.circleMarker([r.lat, r.lon], {
+      radius: size/2+8,
+      fillColor: r.color,
+      color: '#fff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8
+    }).addTo(map);
+
+    circle.bindPopup(`
+      <div style="font-family:Arial;font-size:12px;min-width:180px;">
+        <div style="font-weight:800;font-size:14px;color:#0D3B6E;margin-bottom:6px;">${r.name}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          <div><span style="color:#666">Kiosks:</span> <strong>${r.kiosks}</strong></div>
+          <div><span style="color:#666">Citizens:</span> <strong>${(r.citizens/1000).toFixed(0)}K</strong></div>
+          <div><span style="color:#666">Jobs:</span> <strong>${r.jobs}</strong></div>
+          <div><span style="color:#666">Saving:</span> <strong style="color:#1A7A6E">${r.price_reduction}%</strong></div>
+        </div>
+        ${r.tenders>0?`<div style="margin-top:6px;padding:4px 8px;background:#e8f5f3;border-radius:4px;font-size:11px;"><strong>${r.tenders} live tenders</strong> active</div>`:''}
+      </div>
+    `);
+    markers.push({circle, data: r});
+  });
+
+  renderRegionList();
+}
+
+function updateMapMetric() { renderRegionList(); }
+
+function renderRegionList() {
+  const metric = document.getElementById('map-metric')?.value || 'kiosks';
+  const cont = document.getElementById('region-list');
+  if (!cont) return;
+  const sorted = [...REGIONS].sort((a,b) => b[metric]-a[metric]);
+  const maxVal = sorted[0][metric];
+  cont.innerHTML = sorted.map(r => `
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <div style="font-size:11px;font-weight:700;color:var(--navy)">${r.name}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--teal)">${fmtMetric(r[metric],metric)}</div>
+      </div>
+      <div style="height:5px;background:#e8eef5;border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${(r[metric]/maxVal)*100}%;background:${r.color};border-radius:3px;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function fmtMetric(v, m) {
+  if (m==='citizens') return (v/1000).toFixed(0)+'K';
+  if (m==='price_reduction') return v+'%';
+  return v;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CITIZEN PORTAL
+// ═══════════════════════════════════════════════════════════════════════════════
+function setCitizenTab(tab, el) {
+  if (el) {
+    document.querySelectorAll('#citizen-tabbar .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  renderCitizenTab(tab);
+}
+
+function renderCitizenTab(tab) {
+  const cont = document.getElementById('citizen-tab-content');
+  if (!cont) return;
+
+  if (tab === 'prescriptions') {
+    cont.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Active Prescriptions — ANC Visit #4</div>
+      ${[
+        {name:'Ferrous Sulfate 300mg',dose:'1 tab twice daily',dur:'90 days',stock:'✓ In Stock',save:'66%',price:'ETB 0.55',cat:'maternal'},
+        {name:'Folic Acid 5mg',dose:'1 tab daily',dur:'90 days',stock:'✓ In Stock',save:'82%',price:'ETB 0.12',cat:'maternal'},
+        {name:'Calcium 500mg',dose:'1 tab daily',dur:'60 days',stock:'✓ In Stock',save:'58%',price:'ETB 0.80',cat:'maternal'},
+        {name:'Vitamin D3 1000IU',dose:'1 cap daily',dur:'60 days',stock:'✓ In Stock',save:'71%',price:'ETB 0.65',cat:'maternal'},
+        {name:'Paracetamol 500mg',dose:'As needed (max 3/day)',dur:'30 days',stock:'✓ In Stock',save:'75%',price:'ETB 0.18',cat:'pain'},
+      ].map(p => `
+        <div class="med-card">
+          <div class="med-icon">${p.cat==='maternal'?'🤰':'💊'}</div>
+          <div class="med-info">
+            <div class="med-name">${p.name}</div>
+            <div class="med-sub">${p.dose} · ${p.dur} · <span class="green">${p.stock}</span></div>
+          </div>
+          <div class="med-price-block">
+            <div class="med-price">${p.price}/unit</div>
+            <div class="med-save">↓ ${p.save} cheaper</div>
+            <div style="margin-top:4px;"><button class="bid-btn" style="font-size:10px;padding:3px 8px;">Add to Order</button></div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:10px;padding:10px;background:#e8f5f3;border-radius:8px;font-size:11px;">
+        <strong>CBHI covers 65%</strong> of your prescription costs. Estimated out-of-pocket for 30-day supply: <strong style="color:var(--teal)">ETB 28.40</strong> (saving ETB 142 vs private pharmacy)
+        <button class="bid-btn" style="float:right;font-size:11px;">Order All →</button>
+      </div>
+    `;
+  } else if (tab === 'order') {
+    cont.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Order Medicines — EthioMed+ Kiosk #ORO-047</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" placeholder="🔍 Search medicine name..." style="flex:1;padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+        <select style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+          <option>All Categories</option><option>Maternal</option><option>Malaria</option><option>Chronic</option><option>Paediatric</option>
+        </select>
+      </div>
+      <div style="margin-bottom:8px;font-size:11px;color:var(--muted)">Showing 800 medicines · EthioMed+ generic prices · 50–80% cheaper than private</div>
+      ${[
+        {name:'Artemether+Lumefantrine',strength:'20/120mg × 24 tabs',price:'ETB 4.82',was:'ETB 22',save:'78%',cat:'🦟 Malaria'},
+        {name:'Metformin Hydrochloride',strength:'500mg × 100 tabs',price:'ETB 0.90',was:'ETB 7.50',save:'88%',cat:'💉 Diabetes'},
+        {name:'Amoxicillin Trihydrate',strength:'500mg × 21 caps',price:'ETB 2.80',was:'ETB 11',save:'75%',cat:'💊 Antibiotic'},
+        {name:'Atenolol',strength:'50mg × 100 tabs',price:'ETB 0.35',was:'ETB 3.80',save:'91%',cat:'❤️ Hypertension'},
+        {name:'Omeprazole',strength:'20mg × 30 caps',price:'ETB 0.65',was:'ETB 8.50',save:'92%',cat:'🫁 GI'},
+      ].map(m => `
+        <div class="med-card">
+          <div class="med-icon" style="background:var(--navy);font-size:14px;">${m.cat.split(' ')[0]}</div>
+          <div class="med-info">
+            <div class="med-name">${m.name}</div>
+            <div class="med-sub">${m.strength} · <span style="color:var(--muted);font-size:10px">${m.cat}</span></div>
+          </div>
+          <div class="med-price-block">
+            <div class="med-price">${m.price}</div>
+            <div class="med-orig">${m.was}</div>
+            <div class="med-save">↓ ${m.save} saving</div>
+          </div>
+          <div style="margin-left:8px;"><button class="bid-btn" style="font-size:10px;padding:4px 10px;">+ Add</button></div>
+        </div>
+      `).join('')}
+      <div style="margin-top:10px;padding:10px;background:#f0f4f8;border-radius:8px;font-size:11px;display:flex;gap:10px;align-items:center;">
+        <div>🚚 <strong>CMD Home Delivery</strong> available — Today 2–5pm</div>
+        <div>|</div>
+        <div>🏥 <strong>Kiosk Pickup</strong> — Ready in 2 hours</div>
+        <button class="bid-btn" style="margin-left:auto;">View Cart (3 items)</button>
+      </div>
+    `;
+  } else if (tab === 'whatsapp') {
+    cont.innerHTML = `
+      <div style="max-width:380px;margin:0 auto;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#e5ddd5;">
+        <div style="background:#075E54;color:#fff;padding:10px 14px;font-size:13px;font-weight:700;">💬 AlwaysOn Health AI — EthioMed+</div>
+        <div style="padding:12px;min-height:300px;display:flex;flex-direction:column;gap:8px;">
+          ${[
+            {from:'ai',text:'Salaam Fatuma! 🤰 Your iron supplement reminder — please take Ferrous Sulfate this morning. Your last SkyPath test showed Hb 9.2 g/dL. Next ANC visit in 12 days.'},
+            {from:'user',text:'I have pain in my back, is this normal?'},
+            {from:'ai',text:'Back pain in week 24 is common during pregnancy. Please: (1) Rest with a pillow under your back (2) Take Paracetamol 500mg if severe — it\'s in your prescription. (3) If pain is very strong or you have bleeding, go to Jimma Hospital immediately. Your CMD Mohammed can bring Paracetamol today.'},
+            {from:'user',text:'Ok thank you. How much is the paracetamol?'},
+            {from:'ai',text:'EthioMed+ price: ETB 0.18/tab (private pharmacy: ETB 0.80). Your CBHI covers 65%, so you pay ETB 3.15 for 30 tabs. Shall I order it now? 🏍️'},
+          ].map(m => `
+            <div style="display:flex;justify-content:${m.from==='user'?'flex-end':'flex-start'}">
+              <div style="max-width:80%;padding:8px 10px;border-radius:${m.from==='user'?'10px 2px 10px 10px':'2px 10px 10px 10px'};background:${m.from==='user'?'#dcf8c6':'#fff'};font-size:11px;line-height:1.5;color:#111;">${m.text}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="padding:8px 12px;background:#f0f0f0;display:flex;gap:6px;">
+          <input type="text" placeholder="Type in Afaan Oromoo, Amharic, or English..." style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:20px;font-size:11px;">
+          <button class="bid-btn" style="border-radius:50%;width:32px;height:32px;padding:0;flex-shrink:0;">→</button>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'diagnostics') {
+    cont.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">SkyPath Diagnostic History</div>
+      <table class="data-table">
+        <tr><th>Date</th><th>Test</th><th>Result</th><th>Action Taken</th><th>Lab</th></tr>
+        <tr><td>Mar 18, 2026</td><td>Full Blood Count + Iron Panel</td><td style="color:var(--red)">Hb: 9.2 g/dL (Low)</td><td>Ferrous Sulfate prescribed</td><td>SkyQuest Labs — Jimma Hub</td></tr>
+        <tr><td>Mar 11, 2026</td><td>ANC-4 Vitals (16-vital kit)</td><td style="color:var(--green)">BP: 118/76 | SpO2: 98%</td><td>Normal — no action</td><td>SkyPath Kiosk #ORO-047</td></tr>
+        <tr><td>Feb 28, 2026</td><td>Urine Dipstick + Glucose</td><td style="color:var(--green)">Glucose: 4.8 mmol/L (Normal)</td><td>GDM ruled out</td><td>SkyPath Kiosk #ORO-047</td></tr>
+        <tr><td>Feb 14, 2026</td><td>Malaria RDT</td><td style="color:var(--green)">Negative</td><td>Prophylaxis maintained</td><td>SkyPath Mobile Unit</td></tr>
+      </table>
+      <div style="margin-top:12px;padding:10px;background:#e8f0fe;border-radius:8px;font-size:11px;">
+        <strong>🔬 SkyQuest Labs Advantage:</strong> Results in 15 minutes · Data never leaves Ethiopia · CE-MED certified · All results linked to your SkyPath ID and prescription history
+      </div>
+    `;
+  } else {
+    cont.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:20px 0">Content loading...</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GOVERNMENT DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+function setGovTab(tab, el) {
+  document.querySelectorAll('#gov-tabbar .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGovTab(tab);
+}
+
+function renderGovTab(tab) {
+  const cont = document.getElementById('gov-content');
+  if (!cont) return;
+
+  if (tab === 'national') {
+    cont.innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val">130M</div><div class="kpi-lbl">Total Population</div></div>
+        <div class="kpi"><div class="kpi-val teal">487</div><div class="kpi-lbl">Active Kiosks</div><div class="kpi-delta up">↑ 12 this week</div></div>
+        <div class="kpi"><div class="kpi-val gold">2.1M</div><div class="kpi-lbl">Citizens Enrolled</div><div class="kpi-delta up">↑ 48K this month</div></div>
+        <div class="kpi"><div class="kpi-val green">61%</div><div class="kpi-lbl">Avg Price Reduction</div></div>
+        <div class="kpi"><div class="kpi-val navy">ETB 1.24B</div><div class="kpi-lbl">Citizen Savings YTD</div></div>
+        <div class="kpi"><div class="kpi-val">4,820</div><div class="kpi-lbl">Youth Jobs Created</div></div>
+        <div class="kpi"><div class="kpi-val">24</div><div class="kpi-lbl">Live Tenders</div></div>
+        <div class="kpi"><div class="kpi-val green">USD 2.1M</div><div class="kpi-lbl">India Imports YTD</div></div>
+      </div>
+      <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="panel">
+          <div class="panel-header">📊 Kiosk Rollout by Region</div>
+          <div class="panel-body" style="padding:0;">
+            ${REGIONS.map(r => `
+              <div class="pbar-row" style="padding:6px 12px;border-bottom:1px solid var(--border);">
+                <span class="pbar-label">${r.name}</span>
+                <div class="pbar-track"><div class="pbar-fill" style="width:${(r.kiosks/148)*100}%;background:${r.color}"></div></div>
+                <span class="pbar-val">${r.kiosks}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">📈 National Medicine Price Index (EthioMed+ vs Private)</div>
+          <div class="panel-body"><div class="chart-box"><canvas id="gov-price-chart"></canvas></div></div>
+        </div>
+      </div>
+    `;
+    setTimeout(initGovCharts, 100);
+  } else if (tab === 'disease') {
+    cont.innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val red">↑ 18%</div><div class="kpi-lbl">Malaria — Oromia (4wk trend)</div></div>
+        <div class="kpi"><div class="kpi-val amber">→ Stable</div><div class="kpi-lbl">TB — National</div></div>
+        <div class="kpi"><div class="kpi-val green">↓ 12%</div><div class="kpi-lbl">Cholera — Afar</div></div>
+        <div class="kpi"><div class="kpi-val green">↓ 8%</div><div class="kpi-lbl">Acute Malnutrition</div></div>
+      </div>
+      <div style="padding:14px;">
+        <div class="panel">
+          <div class="panel-header">🦠 Disease-Drug Correlation Intelligence (GeoHealth AI)</div>
+          <div class="panel-body">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">SkyQuest GeoHealth AI detects disease patterns from kiosk prescription data and correlates with regional medicine demand 4–6 weeks ahead of formal outbreak reporting.</div>
+            <table class="data-table">
+              <tr><th>Signal</th><th>Region</th><th>Detection Date</th><th>Predicted Peak</th><th>Medicine Alert</th><th>Action</th></tr>
+              <tr><td>🟡 Malaria Upsurge</td><td>Oromia (West Wellega)</td><td>Mar 18, 2026</td><td>Apr 15–30</td><td>ACT demand ↑ 340%</td><td><span class="tag blue">Tender OROMIA-TDR-2855 Triggered</span></td></tr>
+              <tr><td>🟠 Cholera Cluster</td><td>Afar — Zone 1</td><td>Mar 20, 2026</td><td>Ongoing</td><td>ORS demand ↑ 180%</td><td><span class="tag amber">Emergency Stock Released</span></td></tr>
+              <tr><td>🟢 RTI Seasonal</td><td>Amhara (Northern)</td><td>Mar 22, 2026</td><td>Apr 5–20</td><td>Amoxicillin ↑ 95%</td><td><span class="tag green">Pre-positioned at 8 kiosks</span></td></tr>
+              <tr><td>🔵 Anaemia Cluster</td><td>SNNPR — Wolyta</td><td>Mar 24, 2026</td><td>Ongoing</td><td>Iron/Folic Acid ↑ 220%</td><td><span class="tag teal">SkyPath diagnostics deployed</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'pandemic') {
+    cont.innerHTML = `
+      <div style="padding:14px;">
+        <div class="panel" style="border-color:var(--gold);">
+          <div class="panel-header" style="background:linear-gradient(90deg,var(--gold),#e07b10);">🚨 Pandemic Preparedness Alerts — March 2026</div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="padding:10px;background:#fff9e6;border:1px solid var(--gold);border-radius:8px;font-size:11px;">
+                <div style="font-weight:700;color:var(--gold);margin-bottom:4px;">ALERT 1 — Mpox Monitoring</div>
+                <div>Increased surveillance activated in Gambella and Benishangul-Gumuz border regions. 3 suspected cases reported.</div>
+                <div style="margin-top:6px;"><span class="tag amber">Level 2 Watch</span></div>
+              </div>
+              <div style="padding:10px;background:#e8f0fe;border:1px solid var(--navy-light);border-radius:8px;font-size:11px;">
+                <div style="font-weight:700;color:var(--navy);margin-bottom:4px;">ALERT 2 — Seasonal Influenza</div>
+                <div>Pre-positioning of antivirals and supportive care medicines underway in Addis Ababa and Oromia.</div>
+                <div style="margin-top:6px;"><span class="tag blue">Level 1 Preparedness</span></div>
+              </div>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Strategic Medicine Reserve — National Buffer Stock</div>
+            <table class="data-table">
+              <tr><th>Category</th><th>Current Stock (days)</th><th>Target</th><th>HEWA Sky Reorder Status</th></tr>
+              <tr><td>Antimalarials (ACTs)</td><td>42 days</td><td>90 days</td><td><span class="tag amber">Reorder triggered — TDR-2847</span></td></tr>
+              <tr><td>Antibiotics (broad spectrum)</td><td>68 days</td><td>90 days</td><td><span class="tag green">Shipment in transit</span></td></tr>
+              <tr><td>ORS / Rehydration</td><td>28 days</td><td>60 days</td><td><span class="tag red">Urgent tender open</span></td></tr>
+              <tr><td>ARVs (HIV)</td><td>85 days</td><td>90 days</td><td><span class="tag green">Adequate</span></td></tr>
+              <tr><td>Oxytocin / Maternal</td><td>35 days</td><td>60 days</td><td><span class="tag amber">Tender OROMIA-TDR-2848 active</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'jobs') {
+    cont.innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val green">4,820</div><div class="kpi-lbl">Direct Jobs Created</div></div>
+        <div class="kpi"><div class="kpi-val gold">1,461</div><div class="kpi-lbl">Active CMDs</div></div>
+        <div class="kpi"><div class="kpi-val navy">487</div><div class="kpi-lbl">Kiosk Operators</div></div>
+        <div class="kpi"><div class="kpi-val">ETB 8,400</div><div class="kpi-lbl">Avg Monthly Earning</div></div>
+        <div class="kpi"><div class="kpi-val">72%</div><div class="kpi-lbl">Youth (15–35 yrs)</div></div>
+        <div class="kpi"><div class="kpi-val">48%</div><div class="kpi-lbl">Women in Workforce</div></div>
+      </div>
+      <div style="padding:14px;">
+        <div class="panel">
+          <div class="panel-header">👷 Youth Employment by Region</div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table">
+              <tr><th>Region</th><th>Kiosk Operators</th><th>CMDs</th><th>Technicians</th><th>Total Jobs</th><th>Avg Earning</th></tr>
+              ${REGIONS.map(r => `<tr><td>${r.name}</td><td>${r.kiosks}</td><td>${r.kiosks*3}</td><td>${Math.floor(r.kiosks/3)}</td><td><strong>${r.jobs}</strong></td><td>ETB ${(7500+Math.random()*3000).toFixed(0)}/mo</td></tr>`).join('')}
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'india') {
+    cont.innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val">USD 2.1M</div><div class="kpi-lbl">Imports YTD</div></div>
+        <div class="kpi"><div class="kpi-val gold">USD 8M</div><div class="kpi-lbl">Year 1 Target</div></div>
+        <div class="kpi"><div class="kpi-val green">800</div><div class="kpi-lbl">Medicines Listed</div></div>
+        <div class="kpi"><div class="kpi-val navy">6</div><div class="kpi-lbl">Indian Suppliers</div></div>
+      </div>
+      <div style="padding:14px;">
+        <div class="panel">
+          <div class="panel-header">✈ India→Ethiopia Pharma Corridor — HEWA Sky Quest Global</div>
+          <div class="panel-body">
+            <div style="font-size:11px;background:#fffef0;border:1px solid var(--gold);padding:10px;border-radius:8px;margin-bottom:10px;">
+              <strong>HEWA Sky holds a validated EFDA pharma import licence</strong> for WHO-GMP generic medicines from India. This is the only private-sector India→Ethiopia pharma corridor with full regulatory clearance. No competitor can replicate this in under 18–24 months.
+            </div>
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Import Volume Projection (USD M)</div>
+            <div class="chart-box"><canvas id="india-pipeline-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    `;
+    setTimeout(() => {
+      const ctx = document.getElementById('india-pipeline-chart');
+      if (!ctx) return;
+      new Chart(ctx, {type:'bar',data:{
+        labels:['Q1 2026','Q2 2026','Q3 2026','Q4 2026','2027','2028','2029','2030'],
+        datasets:[{
+          label:'HEWA Sky Import Value (USD M)',
+          data:[0.8,1.3,2.1,3.8,12,28,55,120],
+          backgroundColor:['rgba(201,149,42,0.8)','rgba(201,149,42,0.8)','rgba(201,149,42,0.8)','rgba(201,149,42,0.8)','rgba(26,122,110,0.8)','rgba(26,122,110,0.8)','rgba(26,122,110,0.8)','rgba(13,59,110,0.8)'],
+        }]
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}}}});
+    }, 100);
+  } else if (tab === 'supply') {
+    cont.innerHTML = `
+      <div style="padding:14px;">
+        <div class="panel">
+          <div class="panel-header">⛓ Supply Chain Resilience Score</div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+              ${[
+                {label:'Supplier Diversity',score:72,note:'6 active suppliers'},
+                {label:'Buffer Stock Coverage',score:58,note:'Avg 48 days stock'},
+                {label:'Cold Chain Integrity',score:81,note:'98.4% temp compliance'},
+                {label:'Delivery Reliability',score:88,note:'98.2% on-time delivery'},
+                {label:'Price Stability',score:76,note:'Max 15% price variance'},
+                {label:'EFDA Compliance',score:94,note:'All lots verified'},
+              ].map(s => `
+                <div class="kpi">
+                  <div class="kpi-val ${s.score>80?'green':s.score>65?'gold':'red'}">${s.score}</div>
+                  <div class="kpi-lbl">${s.label}</div>
+                  <div style="font-size:9px;color:var(--muted)">${s.note}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'maternal') {
+    cont.innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val red">267/100K</div><div class="kpi-lbl">MMR — National Baseline</div></div>
+        <div class="kpi"><div class="kpi-val gold">242/100K</div><div class="kpi-lbl">MMR — EthioMed+ Zones</div><div class="kpi-delta up">↓ 9% reduction</div></div>
+        <div class="kpi"><div class="kpi-val">34%</div><div class="kpi-lbl">ANC-4+ Coverage</div><div class="kpi-delta up">↑ from 21.6% baseline</div></div>
+        <div class="kpi"><div class="kpi-val green">18.2%</div><div class="kpi-lbl">Acute Malnutrition (U5)</div><div class="kpi-delta up">↓ from 20.7%</div></div>
+      </div>
+      <div style="padding:14px;font-size:11px;color:var(--muted);">Maternal and child health metrics are improving fastest in zones with highest EthioMed+ kiosk density. SkyPath diagnostics + EthioMed+ medicine access is the combined driver.</div>
+    `;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════════════════════════════
+let chartsInit = {};
+
+function initOpsChart() {
+  if (chartsInit.ops) return;
+  chartsInit.ops = true;
+  const ctx = document.getElementById('ops-chart');
+  if (!ctx) return;
+  new Chart(ctx, {type:'bar',data:{
+    labels: REGIONS.map(r=>r.name),
+    datasets:[{
+      label:'Orders/Day',
+      data: REGIONS.map(r=>Math.round(r.kiosks*9.8)),
+      backgroundColor:'rgba(26,122,110,0.75)',
+    }]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}}}});
+}
+
+function initGovCharts() {
+  if (chartsInit.gov) return;
+  chartsInit.gov = true;
+  const ctx = document.getElementById('gov-price-chart');
+  if (!ctx) return;
+  new Chart(ctx, {type:'line',data:{
+    labels:['2024 Baseline','Mar 2026','Jun 2026','Dec 2026','2027','2028','2030 Target'],
+    datasets:[
+      {label:'Private Sector Price Index',data:[100,100,100,100,102,104,107],borderColor:'#c0392b',tension:0.3,fill:false},
+      {label:'EthioMed+ Price Index',data:[null,42,40,38,36,34,28],borderColor:'#1A7A6E',tension:0.3,fill:false,borderWidth:3},
+    ]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}}}});
+}
+
+function initRevenueCharts() {
+  if (chartsInit.rev) return;
+  chartsInit.rev = true;
+
+  const ctx1 = document.getElementById('rev-stream-chart');
+  if (ctx1) new Chart(ctx1, {type:'doughnut',data:{
+    labels:['HEWA Sky Supply Margin','SkyQuest Platform + AI','Orbit Health CBHI+Hosting','ABH Franchise Fees'],
+    datasets:[{data:[618,285,198,141],backgroundColor:['#C9952A','#1A7A6E','#0D3B6E','#26A99A']}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+
+  const ctx2 = document.getElementById('rev-trend-chart');
+  if (ctx2) new Chart(ctx2, {type:'line',data:{
+    labels:['Oct','Nov','Dec','Jan','Feb','Mar'],
+    datasets:[{
+      label:'Monthly Revenue (USD)',
+      data:[88000,115000,142000,168000,205000,248000],
+      borderColor:'#1A7A6E',backgroundColor:'rgba(26,122,110,0.1)',fill:true,tension:0.4
+    }]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}}}});
+
+  const ctx3 = document.getElementById('rev-5yr-chart');
+  if (ctx3) new Chart(ctx3, {type:'bar',data:{
+    labels:['Year 1','Year 2','Year 3','Year 4','Year 5'],
+    datasets:[
+      {label:'HEWA Sky Quest',data:[2.4,8.2,18.5,42,78],backgroundColor:'rgba(201,149,42,0.8)'},
+      {label:'SkyQuest Tech',data:[1.1,3.8,8.4,19,35],backgroundColor:'rgba(26,122,110,0.8)'},
+      {label:'Orbit Health',data:[0.8,2.6,5.8,13,22],backgroundColor:'rgba(13,59,110,0.8)'},
+      {label:'ABH Partners',data:[0.5,1.8,4.1,9,15],backgroundColor:'rgba(38,169,154,0.8)'},
+    ]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'USD Million'}}}}});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+renderTenders();
+renderLiveBids();
+renderCitizenTab('prescriptions');
+renderGovTab('national');
+
+// Notification ticker
+const notifs = [
+  'AMHARA-TDR-2847: 5 bids received — HEWA Sky Quest leading at ETB 4.82/pack | Tender closes 04:32:11',
+  'OROMIA-JIMMA-TDR-2848: Oxytocin 10IU AWARDED to HEWA Sky at ETB 3.80/vial — 83% saving | Kiosk ORO-047 notified',
+  'NEW KIOSK REGISTERED: SNNPR-Wolyta-124 | Operator: Tigist Alemu | 3 CMDs hired | Online 14 March',
+  'GeoHealth AI ALERT: Malaria upsurge signal detected — West Wellega, Oromia | ACT tender auto-triggered',
+  'INDIA SHIPMENT: HEWA-2026-0041 cleared EFDA customs | 50,000 ACTs + 200,000 ORS sachets en route to Addis hub',
+  'CITIZEN MILESTONE: 2,100,000 citizens enrolled across all 12 Ethiopian regions | +48,000 this month',
+];
+let notifIdx = 0;
+setInterval(() => {
+  notifIdx = (notifIdx+1)%notifs.length;
+  document.getElementById('notif-msg').textContent = notifs[notifIdx];
+}, 6000);
+
+// Live bid counter animation on bids tab
+setInterval(() => {
+  if (Math.random() < 0.15) {
+    const el = document.getElementById('ts-tenders');
+    if (el) el.textContent = (parseInt(el.textContent)||24);
+  }
+}, 4000);
+</script>
+</body>
+</html>
